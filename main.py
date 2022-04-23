@@ -4,8 +4,6 @@ import sys
 import requests
 from lxml import etree
 
-from cv2 import line
-
 class Window(QWidget):
     def __init__(self):
         super().__init__()
