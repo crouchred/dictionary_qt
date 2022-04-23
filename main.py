@@ -32,13 +32,26 @@ class Window(QWidget):
     def search(self):
         text = self.line_edit.text()
         en_res = get_en(text)
-        self.label.setText(en_res)
+        de_res = get_de(text)
+        res = en_res + "\n\n-----------------\n\n" + de_res
+        self.label.setText(res)
+
 
 def get_en(text):
     r = requests.get("https://apii.dict.cn/mini.php?q={}".format(text))
     html = etree.HTML(r.text)
     data = html.xpath('//*[@id="e"]/text()')
     return '\n\n'.join(data)
+
+def get_de(text):
+    r = requests.get("https://www.godic.net/dicts/de/{}".format(text))
+    html = etree.HTML(r.text)
+    spans = html.xpath('//*[@id="ExpFCChild"]/span')
+    res = ""
+    for span in spans:
+        if span.get("class") in ['cara', 'exp']:
+            res += span.text + "\n"
+    return res
 
 def main():
     app = QApplication(sys.argv)
@@ -48,4 +61,5 @@ def main():
 
 if __name__=="__main__":
     #get_en("lunch")
+    #print(get_de("Arzt"))
     main()
