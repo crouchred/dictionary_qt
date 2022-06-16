@@ -5,6 +5,7 @@ import sys
 import requests
 from requests.exceptions import ReadTimeout,ConnectionError
 from lxml import etree
+import json
 
 class Window(QWidget):
     def __init__(self):
@@ -27,13 +28,13 @@ class Window(QWidget):
 
         box.addWidget(self.line_edit,0,0)
         box.addWidget(btn, 0,1)
-        box.addWidget(self.text_en,1,0)
-        box.addWidget(self.text_de,2,0)
+        box.addWidget(self.text_de,1,0)
+        box.addWidget(self.text_en,2,0)
         self.setLayout(box)
 
     def search(self):
         text = self.line_edit.text()
-        en_res = Translate().get_en(text) 
+        en_res = Translate().get_en_en(text) 
         de_res = Translate().get_de(text)
         self.text_en.setText(en_res)
         self.text_de.setText(de_res)
@@ -41,7 +42,7 @@ class Window(QWidget):
 class Translate:
 
     retry = 3
-    timeout = 2
+    timeout = 3
     de_mapping = {
             'a2': 'ä',
             'u2': 'ü',
@@ -53,14 +54,28 @@ class Translate:
             'O2': 'Ö',
         }
 
-    def get_en(self, text):
-        for i in range(self.retry):
-            try:
-                r = requests.get("https://apii.dict.cn/mini.php?q={}".format(text), timeout=self.timeout)
-                break
-            except (ReadTimeout,ConnectionError):
-                continue
-        else:
+    def get_en_en(self, text):
+        try:
+            r = requests.get("https://api.dictionaryapi.dev/api/v2/entries/en/{}".format(text), verify=False, timeout=self.timeout)
+        except (ReadTimeout,ConnectionError):
+            return "en网络超时" 
+        data = json.loads(r.text)
+        if isinstance(data,dict):
+            return ""
+        meanings = data[0]['meanings']
+        text = ""
+        for meaning in meanings:
+            text += meaning['partOfSpeech'] + "\n"
+            for defination in meaning.get('definitions'):
+                text += defination['definition']  + "\n"
+            text += "\n"
+        return text
+        
+
+    def get_en_cn(self, text):
+        try:
+            r = requests.get("https://apii.dict.cn/mini.php?q={}".format(text), timeout=self.timeout)
+        except (ReadTimeout,ConnectionError):
             return "en网络超时" 
         html = etree.HTML(r.text)
         data = html.xpath('//*[@id="e"]/text()')
@@ -70,13 +85,9 @@ class Translate:
         for k,v in self.de_mapping.items():
             if k in text:
                 text = text.replace(k,v)
-        for i in range(self.retry):
-            try:
-                r = requests.get("https://www.godic.net/dicts/de/{}".format(text), timeout=self.timeout)
-                break
-            except (ReadTimeout,ConnectionError):
-                continue
-        else:
+        try:
+            r = requests.get("https://www.godic.net/dicts/de/{}".format(text), timeout=self.timeout)
+        except (ReadTimeout,ConnectionError):
             return "de网络超时" 
         html = etree.HTML(r.text)
         spans = html.xpath('//*[@id="ExpFCChild"]/span')
@@ -103,9 +114,10 @@ def test_de():
         print(Translate().get_de(Wort))
 
 def test_en():
-    print(Translate().get_en("lunch"))
+    #print(Translate().get_en_cn("lunch"))
+    print(Translate().get_en_en("lunch"))
 
 if __name__=="__main__":
     main()
-    test_de()
+    #test_de()
     #test_en()
