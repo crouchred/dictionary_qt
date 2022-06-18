@@ -35,7 +35,7 @@ class Window(QWidget):
     def search(self):
         text = self.line_edit.text()
         en_res = Translate().get_en_en(text) 
-        de_res = Translate().get_de(text)
+        de_res = Translate().get_de_en(text)
         self.text_en.setText(en_res)
         self.text_de.setText(de_res)
 
@@ -81,7 +81,7 @@ class Translate:
         data = html.xpath('//*[@id="e"]/text()')
         return '\n\n'.join(data) + "\n https://dict.youdao.com/w/eng/{}/".format(text)
 
-    def get_de(self, text):
+    def get_de_cn(self, text):
         for k,v in self.de_mapping.items():
             if k in text:
                 text = text.replace(k,v)
@@ -101,7 +101,28 @@ class Translate:
         print("----\n")
         for text in texts:
             res += text + "\n"
-        return res + "\n https://www.godic.net/dicts/de/{}".format(text)
+        return res 
+
+    def get_de_en(self, text):
+        for k,v in self.de_mapping.items():
+            if k in text:
+                text = text.replace(k,v)
+        try:
+            r = requests.get("https://www.godic.net/dicts/de/{}".format(text), timeout=self.timeout)
+        except (ReadTimeout,ConnectionError):
+            return "de网络超时" 
+        html = etree.HTML(r.text)
+        page_status = html.xpath('//*[@id="page-status"]')[0].attrib['value']
+        url2 = "https://www.godic.net/Dicts/de/tab-detail/-3"
+        r2 = requests.post(url2, data={'status': page_status})
+        html2 = etree.HTML(r2.text)
+        if html2 is None:
+            return ""
+        cixing = ''.join(html2.xpath('//*[@id="FEChild"]/font/text()'))
+        derdiedas = ''.join(html2.xpath('//*[@id="FEChild"]/strong/text()'))
+        en = ''.join(html2.xpath('//*[@id="FEChild"]/text()'))
+        res = cixing + derdiedas + en
+        return res 
 
 def main():
     app = QApplication(sys.argv)
@@ -110,8 +131,8 @@ def main():
     sys.exit(app.exec())
 
 def test_de():
-    for Wort in ["Wort", "hallo", "Tiergarten", "Universita2t"]:
-        print(Translate().get_de(Wort))
+    for Wort in ["university","kalt","gehen","Wort", "hallo", "Tiergarten", "Universita2t"]:
+        print(Translate().get_de_en(Wort))
 
 def test_en():
     #print(Translate().get_en_cn("lunch"))
