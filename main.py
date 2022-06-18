@@ -121,7 +121,7 @@ class Translate:
         cixing = ''.join(html2.xpath('//*[@id="FEChild"]/font/text()'))
         derdiedas = ''.join(html2.xpath('//*[@id="FEChild"]/strong/text()'))
         en = ''.join(html2.xpath('//*[@id="FEChild"]/text()'))
-        res = cixing + derdiedas + en
+        res = text + " " +  cixing + derdiedas + en
         return res 
 
 def main():
@@ -140,5 +140,5 @@ def test_en():
 
 if __name__=="__main__":
     main()
-    #test_de()
+    test_de()
     #test_en()
